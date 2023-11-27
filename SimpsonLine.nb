@@ -1,0 +1,117 @@
+MIN = -3; MAX = 4;
+
+(**)
+(*уравнения сторон треугольника для нахождения всевозможных \
+пересечений*)
+(**)
+abxy[a_, x_, y_] := Det[{
+    {x - a[[1]][[1]], y - a[[1]][[2]]},
+    {x - a[[2]][[1]], y - a[[2]][[2]]}
+    }];
+bcxy[a_, x_, y_] := Det[{
+    {x - a[[3]][[1]], y - a[[3]][[2]]},
+    {x - a[[2]][[1]], y - a[[2]][[2]]}
+    }];
+caxy[a_, x_, y_] := Det[{
+    {x - a[[3]][[1]], y - a[[3]][[2]]},
+    {x - a[[1]][[1]], y - a[[1]][[2]]}
+    }];
+(**)
+(*уравнения перпендекулярных к сторонам треугольника направлений для:
+1)нахождения центра окружности (как центр пересечния серединных \
+перпендекуляров) и её радиуса, чтобы по окружности бегала \
+многоуважаемая точка 
+   2)постороения перпендекуляров из бегущей по окружности
+*)
+(**)
+pabxy[a_, x_, y_] := (a[[2]] - a[[1]]) . {x, y};
+pbcxy[a_, x_, y_] := (a[[3]] - a[[2]]) . {x, y};
+pcaxy[a_, x_, y_] := (a[[1]] - a[[3]]) . {x, y};
+(**)
+(*окуржность, центр, радиус*)
+(**)
+circlexy[a_, x_, y_] := Det[{
+    {x^2 + y^2, x, y, 1},
+    {((a[[1]])[[1]])^2 + ((a[[1]])[[2]])^2, (a[[1]])[[1]], (a[[1]])[[
+      2]], 1},
+    {((a[[2]])[[1]])^2 + ((a[[2]])[[2]])^2, (a[[2]])[[1]], (a[[2]])[[
+      2]], 1}, (*уравнение описанной окружности*)
+    {((a[[3]])[[1]])^2 + ((a[[3]])[[2]])^2, (a[[3]])[[1]], (a[[3]])[[
+      2]], 1}}
+   ]; 
+(*координаты центра == координаты точки пересечения серединных \
+перпендекуляров (мы знаем что три точно пересекаются в одной точке, \
+так что берем любые два)*)
+circleCenter[a_] := 
+  SolveValues[{pabxy[a, x, y] - 
+       pabxy[a, ((a[[1]] + a[[2]])/2)[[1]], ((a[[1]] + a[[2]])/2)[[
+         2]]] == 0, 
+     pbcxy[a, x, y] - 
+       pbcxy[a, ((a[[2]] + a[[3]])/2)[[1]], ((a[[2]] + a[[3]])/2)[[
+         2]]] == 0}, {x, y}][[1]];
+R[a_] := Norm[a[[1]] - circleCenter[a]];
+(*бегущая по окружности точка*)
+circlePoint[
+   a_, \[Alpha]_] := {R[a]*Cos[\[Alpha]] + circleCenter[a][[1]], 
+   R[a]*Sin[\[Alpha]] + circleCenter[a][[2]]};
+(*точки пересечения перпендекуляров, опущенных из бегущей по \
+окружности точки, с соответсвующими сторонами*)
+abPoint[a_, \[Alpha]_] := 
+  SolveValues[{pabxy[a, x, y] - 
+       pabxy[a, circlePoint[a, \[Alpha]][[1]], 
+        circlePoint[a, \[Alpha]][[2]]] == 0, abxy[a, x, y] == 0}, {x, 
+     y}][[1]];
+bcPoint[a_, \[Alpha]_] := 
+  SolveValues[{pbcxy[a, x, y] - 
+       pbcxy[a, circlePoint[a, \[Alpha]][[1]], 
+        circlePoint[a, \[Alpha]][[2]]] == 0, bcxy[a, x, y] == 0}, {x, 
+     y}][[1]];
+caPoint[a_, \[Alpha]_] := 
+  SolveValues[{pcaxy[a, x, y] - 
+       pcaxy[a, circlePoint[a, \[Alpha]][[1]], 
+        circlePoint[a, \[Alpha]][[2]]] == 0, caxy[a, x, y] == 0}, {x, 
+     y}][[1]];
+(**)
+(*три прямых симпсона для проверки*)
+(**)
+simpsonABBC[a_, \[Alpha]_, t_] := 
+  Tan[0.99999 (t - 1/2) \[Pi]]*(bcPoint[a, \[Alpha]] - 
+      abPoint[a, \[Alpha]]) + abPoint[a, \[Alpha]];
+simpsonBCCA[a_, \[Alpha]_, t_] := 
+  Tan[0.99999 (t - 1/2) \[Pi]]*(caPoint[a, \[Alpha]] - 
+      bcPoint[a, \[Alpha]]) + bcPoint[a, \[Alpha]];
+simpsonCAAB[a_, \[Alpha]_, t_] := 
+  Tan[0.99999 (t - 1/2) \[Pi]]*(abPoint[a, \[Alpha]] - 
+      caPoint[a, \[Alpha]]) + caPoint[a, \[Alpha]];
+Manipulate[
+ Show[
+  ParametricPlot[simpsonABBC[a, \[Alpha], t], {t, 0, 1}, 
+   PlotStyle -> Directive[Thick, Green]],
+  ParametricPlot[simpsonBCCA[a, \[Alpha], t], {t, 0, 1}, 
+   PlotStyle -> Directive[Thick, Green]],
+  ParametricPlot[simpsonCAAB[a, \[Alpha], t], {t, 0, 1}, 
+   PlotStyle -> Directive[Thick, Green]],
+  Graphics[{
+    {Thick, Black, Line[{a[[1]], a[[2]], a[[3]], a[[1]]}]},
+    {Red, PointSize[0.025], Point[circlePoint[a, \[Alpha]]]},
+    {Red, PointSize[0.019], Point[abPoint[a, \[Alpha]]]},
+    {Red, PointSize[0.019], Point[bcPoint[a, \[Alpha]]]},
+    {Red, PointSize[0.019], Point[caPoint[a, \[Alpha]]]},
+    {Dashed, Red, 
+     Line[{abPoint[a, \[Alpha]], circlePoint[a, \[Alpha]]}]},
+    {Dashed, Red, 
+     Line[{bcPoint[a, \[Alpha]], circlePoint[a, \[Alpha]]}]},
+    {Dashed, Red, 
+     Line[{caPoint[a, \[Alpha]], circlePoint[a, \[Alpha]]}]}
+    }],
+  ContourPlot[circlexy[a, x, y] == 0, {x, MIN, MAX}, {y, MIN, MAX}, 
+   ContourStyle -> Directive[Thick, Black]],
+  ContourPlot[{abxy[a, x, y] == 0, bcxy[a, x, y] == 0, 
+    caxy[a, x, y] == 0}, {x, MIN, MAX}, {y, MIN, MAX}, 
+   ContourStyle -> Directive[Dashed, Black]],
+  
+  PlotRange -> {{MIN, MAX}, {MIN, MAX}}, Axes -> False, Frame -> True
+  ],
+ {\[Alpha], 0, 2 \[Pi]},
+ {{a, {{-1, -1}, {1, -1}, {0, 1}}}, Locator}
+ ]
